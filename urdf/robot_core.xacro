@@ -1,0 +1,103 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <xacro:include filename="inertial_properties.xacro"/>
+    
+    <material name="grey">
+        <color rgba="0.4 0.4 0.4 1"/>
+    </material>
+
+    <material name="blue">
+        <color rgba="0.2 0.2 1 1"/>
+    </material>
+
+    <xacro:property name="scale_factor" value="0.001 0.001 0.001"/>
+    <xacro:property name="package_name" value="twip"/>
+
+    <!-- ****************************************************************************************** -->
+    <!-- ***************************************** Base ******************************************* -->
+    <!-- ****************************************************************************************** -->
+
+    <link name="world"/>
+
+    <link name="chassis_link">
+        <visual>
+            <origin xyz="0 0 0"/>
+            <geometry>
+                <mesh filename="package://${package_name}/meshes/chassis.stl" scale="${scale_factor}"/>
+            </geometry>
+            <material name="grey"/>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0"/>
+            <geometry>
+                <mesh filename="package://${package_name}/meshes/chassis.stl" scale="${scale_factor}"/>
+            </geometry>
+        </collision>
+        <xacro:chassis_link_inertial/>
+    </link>
+
+    <joint name="chassis_joint" type="fixed">
+        <parent link="world"/>
+        <child link="chassis_link"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+
+
+    <!-- ****************************************************************************************** -->
+    <!-- ***************************************** Left Wheel ************************************* -->
+    <!-- ****************************************************************************************** -->
+
+    <link name="left_wheel_link">
+        <visual>
+            <origin xyz="0 0 0"/>
+            <geometry>
+                <mesh filename="package://${package_name}/meshes/wheel.stl" scale="${scale_factor}"/>
+            </geometry>
+            <material name="blue"/>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0"/>
+            <geometry>
+                <mesh filename="package://${package_name}/meshes/wheel.stl" scale="${scale_factor}"/>
+            </geometry>
+        </collision>
+        <xacro:left_wheel_inertial/>
+    </link>
+
+    <joint name="left_wheel_joint" type="continuous">
+        <parent link="chassis_link"/>
+        <child link="left_wheel_link"/>
+        <origin xyz="0.084 0 0" rpy="0 ${pi/2} 0"/>
+        <axis xyz="0 0 1"/>
+    </joint>
+
+    <!-- ****************************************************************************************** -->
+    <!-- ***************************************** Right Wheel ************************************ -->
+    <!-- ****************************************************************************************** -->
+
+    <link name="right_wheel_link">
+        <visual>
+            <origin xyz="0 0 0"/>
+            <geometry>
+                <mesh filename="package://${package_name}/meshes/wheel.stl" scale="${scale_factor}"/>
+            </geometry>
+            <material name="blue"/>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0"/>
+            <geometry>
+                <mesh filename="package://${package_name}/meshes/wheel.stl" scale="${scale_factor}"/>
+            </geometry>
+        </collision>
+        <xacro:right_wheel_inertial/>
+    </link>
+
+    <joint name="right_wheel_joint" type="continuous">
+        <parent link="chassis_link"/>
+        <child link="right_wheel_link"/>
+        <origin xyz="-0.084 0 0" rpy="0 ${-pi/2} 0"/>
+        <axis xyz="0 0 1"/>
+    </joint>
+
+</robot>
