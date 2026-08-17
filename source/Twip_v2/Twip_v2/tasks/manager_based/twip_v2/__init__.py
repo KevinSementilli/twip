@@ -13,11 +13,21 @@ from . import agents
 
 
 gym.register(
-    id="Template-Twip-V2-v0",
+    id="Template-Twip-V2",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": f"{__name__}.twip_v2_env_cfg:TwipV2EnvCfg",
+        "env_cfg_entry_point": f"{__name__}.twip_v2_env_cfg:TwipEnvCfg",
+        "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_cfg.yaml",
+    },
+)
+
+gym.register(
+    id="Template-Twip-Play-V2",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.twip_v2_env_cfg:TwipEnvCfg_PLAY",
         "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_cfg.yaml",
     },
 )
