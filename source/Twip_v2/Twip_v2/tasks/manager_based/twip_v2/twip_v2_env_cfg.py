@@ -77,7 +77,7 @@ class CommandsCfg:
 
     base_velocity = mdp.UniformVelocityCommandCfg(
         asset_name="robot",
-        resampling_time_range=(4.0, 4.0),
+        resampling_time_range=(2.0, 2.0),
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges(
             lin_vel_x=(0.0, 0.0),
@@ -99,11 +99,13 @@ class ObservationsCfg:
         wheel_pos = ObsTerm(func=mdp.joint_pos_rel)
 
         # Wheel velocities
-        wheel_vel = ObsTerm(
-            func=mdp.joint_vel_rel)
+        wheel_vel = ObsTerm(func=mdp.joint_vel_rel)
 
         # Body orientation relative to gravity
         base_orientation = ObsTerm(func=mdp.projected_gravity)
+
+        # Body linear velocity
+        base_lin_vel = ObsTerm(func=mdp.base_lin_vel)
 
         # Desired velocity command
         velocity_command = ObsTerm(
@@ -138,126 +140,6 @@ class TerminationsCfg:
     )
 
 
-@configclass
-class EventCfg:
-    """Configuration for events."""
-
-    # reset
-    reset_wheels = EventTerm(
-        func=mdp.reset_joints_by_offset,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names=["left_wheel_joint", "right_wheel_joint"]),
-            "position_range": (-0.05, 0.05),
-            "velocity_range": (-0.1, 0.1),
-        },
-    )
-
-    reset_body_orientation = EventTerm(
-        func=mdp.reset_root_state_uniform,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot"),
-            "pose_range": {
-                "roll": (0.0, 0.0),
-                "pitch": (-math.radians(5.0), math.radians(5.0)),
-                "yaw": (0.0, 0.0),
-            },
-            "velocity_range": {
-                "x": (0.0, 0.0),
-                "y": (0.0, 0.0),
-                "z": (0.0, 0.0),
-                "roll": (0.0, 0.0),
-                "pitch": (0.0, 0.0),
-                "yaw": (0.0, 0.0),
-            },
-        },
-    )
-
-    # initial disturbance
-    initial_push = EventTerm(
-        func=mdp.push_by_setting_velocity,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot"),
-            "velocity_range": {
-                "x": (0.0, 0.0),
-                "y": (-4.0, 4.0),
-                "z": (0.0, 0.0),
-                "roll": (0.0, 0.0),
-                "pitch": (0.0, 0.0),
-                "yaw": (0.0, 0.0),
-            },
-        },
-    )
-
-
-@configclass
-class RewardsCfg:
-    """Reward terms for the MDP."""
-
-    # Stay alive
-    alive = RewTerm(func=mdp.is_alive, weight=1.0)
-
-    # Penalty for falling
-    terminating = RewTerm(func=mdp.is_terminated, weight=-2.0)
-
-    # Keep the chassis upright
-    upright = RewTerm(func=mdp.flat_orientation_l2, weight=-1.0,
-        params={"asset_cfg": SceneEntityCfg("robot")}
-    )
-
-    # Penalize body angular velocity
-    body_ang_vel = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.01,
-        params={"asset_cfg": SceneEntityCfg("robot")}
-    )
-
-    # Penalize excessive wheel velocity
-    wheel_vel = RewTerm(func=mdp.joint_vel_l2,weight=-0.001,
-        params={"asset_cfg": SceneEntityCfg("robot",
-                joint_names=["left_wheel_joint","right_wheel_joint"],
-            ),
-        },
-    )
-
-    # Penalize rapid changes in wheel torque
-    action_rate = RewTerm(func=mdp.action_rate_l2,weight=-0.001)
-
-    # velocity_tracking = RewTerm(
-    #     func=mdp.track_lin_vel_xy_exp,
-    #     weight=1.0,
-    #     params={
-    #         "std": 0.5, 
-    #         "command_name": "base_velocity",
-    #     },
-    # )
-
-    # yaw_tracking = RewTerm(
-    #     func=mdp.track_ang_vel_z_exp,
-    #     weight=0.5,
-    #     params={
-    #         "std": 0.5,
-    #         "command_name": "base_velocity",
-    #     },
-    # )
-
-
-@configclass
-class CurriculumCfg:
-    """Curriculum terms for the MDP."""
-
-
-    # initial_push_curriculum = CurrTerm(
-    #     func=mdp.modify_env_param,
-    #     params={
-    #         "address": "event_manager.initial_push.params.force_range.x",
-    #         "path": "event_manager.initial_push.params.force_range.x",
-    #         "value": (-4.0, 4.0),
-    #     },
-    # )
-
-
-
 ##
 # Environment configuration
 ##
@@ -273,9 +155,7 @@ class TwipEnvCfg(ManagerBasedRLEnvCfg):
     commands =CommandsCfg()
     # MDP settings
     terminations = TerminationsCfg()
-    events = EventCfg()
-    rewards = RewardsCfg()
-    curriculum = CurriculumCfg()
+
 
     # Post initialization
     def __post_init__(self) -> None:

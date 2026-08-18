@@ -5,10 +5,13 @@
 
 __all__ = [
     "joint_pos_target_l2",
+    "set_disturbance",
+    "set_curr_param",
 ]
 
 # Forward stable MDP terms lazily, then override with environment-specific terms below.
 from isaaclab.envs.mdp import *  # noqa: F401, F403
 
 from .rewards import joint_pos_target_l2
+from .curriculum import set_disturbance, set_curr_param
 
