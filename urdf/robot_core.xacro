@@ -97,7 +97,7 @@
         <parent link="chassis_link"/>
         <child link="right_wheel_link"/>
         <origin xyz="-0.084 0 0" rpy="0 ${-pi/2} 0"/>
-        <axis xyz="0 0 1"/>
+        <axis xyz="0 0 -1"/>
     </joint>
 
 </robot>
