@@ -1,0 +1,74 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <xacro:property name="chassis_link_com" value="0 0 0.009"/>
+    <xacro:property name="chassis_link_mass" value="0.861"/>
+    <xacro:property name="chassis_link_ixx" value="1.0e-3"/>
+    <xacro:property name="chassis_link_ixy" value="-2.22e-5"/>
+    <xacro:property name="chassis_link_ixz" value="-3.68e-6"/>
+    <xacro:property name="chassis_link_iyy" value="5.0e-3"/>
+    <xacro:property name="chassis_link_iyz" value="-4.8e-7"/>
+    <xacro:property name="chassis_link_izz" value="4.0e-3"/>
+
+    <xacro:property name="body_link_com" value="0 -0.0024 0.0476"/>
+    <xacro:property name="body_link_mass" value="1.073"/>
+    <xacro:property name="body_link_ixx" value="3.0e-3"/>
+    <xacro:property name="body_link_ixy" value="-5.307e-7"/>
+    <xacro:property name="body_link_ixz" value="1.0e-5"/>
+    <xacro:property name="body_link_iyy" value="3.0e-3"/>
+    <xacro:property name="body_link_iyz" value="2.0e-5"/>
+    <xacro:property name="body_link_izz" value="3.0e-3"/>
+
+    <xacro:property name="left_wheel_com" value="0 0 0.017"/>
+    <xacro:property name="left_wheel_mass" value="1.848"/>
+    <xacro:property name="left_wheel_ixx" value="1.0e-3"/>
+    <xacro:property name="left_wheel_ixy" value="0.0"/>
+    <xacro:property name="left_wheel_ixz" value="0.0"/>
+    <xacro:property name="left_wheel_iyy" value="1.0e-3"/>
+    <xacro:property name="left_wheel_iyz" value="0.0"/>
+    <xacro:property name="left_wheel_izz" value="2.0e-3"/>
+
+    <xacro:property name="right_wheel_com" value="0 0 0.017"/>
+    <xacro:property name="right_wheel_mass" value="1.848"/>
+    <xacro:property name="right_wheel_ixx" value="1.0e-3"/>
+    <xacro:property name="right_wheel_ixy" value="0.0"/>
+    <xacro:property name="right_wheel_ixz" value="0.0"/>
+    <xacro:property name="right_wheel_iyy" value="1.0e-3"/>
+    <xacro:property name="right_wheel_iyz" value="0.0"/>
+    <xacro:property name="right_wheel_izz" value="2.0e-3"/>
+
+    <xacro:macro name="link_inertial" params="xyz mass ixx ixy ixz iyy iyz izz">
+        <inertial>
+            <origin xyz="${xyz}"/>
+            <mass value="${mass}"/>
+            <inertia ixx="${ixx}" ixy="${ixy}" ixz="${ixz}"
+                     iyx="${ixy}" iyy="${iyy}" iyz="${iyz}"
+                     izx="${ixz}" izy="${iyz}" izz="${izz}"/>
+        </inertial>
+    </xacro:macro>
+
+    <xacro:macro name="chassis_link_inertial">
+        <xacro:link_inertial xyz="${chassis_link_com}" mass="${chassis_link_mass}"
+                             ixx="${chassis_link_ixx}" ixy="${chassis_link_ixy}" ixz="${chassis_link_ixz}"
+                             iyy="${chassis_link_iyy}" iyz="${chassis_link_iyz}" izz="${chassis_link_izz}"/>
+    </xacro:macro>
+
+    <xacro:macro name="left_wheel_inertial">
+        <xacro:link_inertial xyz="${left_wheel_com}" mass="${left_wheel_mass}"
+                             ixx="${left_wheel_ixx}" ixy="${left_wheel_ixy}" ixz="${left_wheel_ixz}"
+                             iyy="${left_wheel_iyy}" iyz="${left_wheel_iyz}" izz="${left_wheel_izz}"/>
+    </xacro:macro>
+
+    <xacro:macro name="right_wheel_inertial">
+        <xacro:link_inertial xyz="${right_wheel_com}" mass="${right_wheel_mass}"
+                             ixx="${right_wheel_ixx}" ixy="${right_wheel_ixy}" ixz="${right_wheel_ixz}"
+                             iyy="${right_wheel_iyy}" iyz="${right_wheel_iyz}" izz="${right_wheel_izz}"/>
+    </xacro:macro>
+
+    <xacro:macro name="body_link_inertial">
+        <xacro:link_inertial xyz="${body_link_com}" mass="${body_link_mass}"
+                             ixx="${body_link_ixx}" ixy="${body_link_ixy}" ixz="${body_link_ixz}"
+                             iyy="${body_link_iyy}" iyz="${body_link_iyz}" izz="${body_link_izz}"/>
+    </xacro:macro>
+
+</robot>
