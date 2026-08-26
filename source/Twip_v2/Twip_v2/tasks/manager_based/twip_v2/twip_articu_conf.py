@@ -20,8 +20,8 @@ spawn=sim_utils.UsdFileCfg(
         activate_contact_sensors=False,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             rigid_body_enabled=True,
-            max_linear_velocity=1000.0,
-            max_angular_velocity=1000.0,
+            max_linear_velocity=100.0,
+            max_angular_velocity=100.0,
             max_depenetration_velocity=5.0,
         ),
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
@@ -40,10 +40,11 @@ spawn=sim_utils.UsdFileCfg(
 # What parts of the robot move, and how stiff / damped are they?
     actuators={
         "wheels": ImplicitActuatorCfg(
-            joint_names_expr=[".*"],
+            joint_names_expr=["left_wheel_joint","right_wheel_joint"],
             effort_limit=6.0,
+            velocity_limit=15.0,
             stiffness=0.0,
-            damping=0.0,
+            damping=1.0,
         ),
     }
 )

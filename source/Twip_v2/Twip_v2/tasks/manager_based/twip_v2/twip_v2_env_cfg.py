@@ -75,11 +75,11 @@ class ActionsCfg:
 class CommandsCfg:
     """Command terms for the MDP."""
 
-    base_velocity = mdp.UniformVelocityCommandCfg(
+    base_velocity = mdp.WorldVelocityCommandCfg(
         asset_name="robot",
-        resampling_time_range=(2.0, 2.0),
+        resampling_time_range=(2.0, 5.0),
         debug_vis=True,
-        ranges=mdp.UniformVelocityCommandCfg.Ranges(
+        ranges = mdp.WorldVelocityCommandCfg.Ranges(
             lin_vel_x=(0.0, 0.0),
             lin_vel_y=(0.0, 0.0),
             ang_vel_z=(0.0, 0.0),
@@ -148,7 +148,7 @@ class TerminationsCfg:
 @configclass
 class TwipEnvCfg(ManagerBasedRLEnvCfg):
     # Scene settings
-    scene = TwipSceneCfg(num_envs=8192, env_spacing=2.0)
+    scene = TwipSceneCfg(num_envs=4096, env_spacing=2.0)
     # Basic settings
     observations = ObservationsCfg()
     actions = ActionsCfg()

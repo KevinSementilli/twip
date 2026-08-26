@@ -27,117 +27,12 @@ from . import mdp
 ##
 
 from .twip_articu_conf import TWIP_CFG  # isort:skip
-
-
-##
-# Scene definition
-##
-
-
-@configclass
-class TwipSceneCfg(InteractiveSceneCfg):
-    """Configuration for a cart-pole scene."""
-
-    # world
-    ground = AssetBaseCfg(
-        prim_path="/World/ground",
-        spawn=sim_utils.GroundPlaneCfg(),
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.0, 0.0, 0.0)),
-    )
-
-    # robot
-    robot = TWIP_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
-
-    # lights
-    dome_light = AssetBaseCfg(
-        prim_path="/World/DomeLight",
-        spawn=sim_utils.DomeLightCfg(color=(0.9, 0.9, 0.9), intensity=5000.0),
-    )
+from .twip_v2_env_cfg import TwipEnvCfg
 
 
 ##
 # MDP settings
 ##
-
-
-@configclass
-class ActionsCfg:
-    """Action specifications for the MDP."""
-
-    joint_effort = mdp.JointEffortActionCfg(
-        asset_name="robot", 
-        joint_names=["left_wheel_joint", "right_wheel_joint"], 
-        scale=6.0
-    )
-
-
-@configclass
-class CommandsCfg:
-    """Command terms for the MDP."""
-
-    base_velocity = mdp.UniformVelocityCommandCfg(
-        asset_name="robot",
-        resampling_time_range=(2.0, 2.0),
-        debug_vis=True,
-        ranges=mdp.UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(0.0, 0.0),
-            lin_vel_y=(0.0, 0.0),
-            ang_vel_z=(0.0, 0.0),
-        ),
-    )
-
-
-@configclass
-class ObservationsCfg:
-    """Observation specifications for the MDP."""
-
-    @configclass
-    class PolicyCfg(ObsGroup):
-        """Observations for policy group."""
-
-        # Wheel positions
-        wheel_pos = ObsTerm(func=mdp.joint_pos_rel)
-
-        # Wheel velocities
-        wheel_vel = ObsTerm(func=mdp.joint_vel_rel)
-
-        # Body orientation relative to gravity
-        base_orientation = ObsTerm(func=mdp.projected_gravity)
-
-        # Body linear velocity
-        base_lin_vel = ObsTerm(func=mdp.base_lin_vel)
-
-        # Desired velocity command
-        velocity_command = ObsTerm(
-            func=mdp.generated_commands,
-            params={"command_name": "base_velocity"},
-        )
-
-        # Previous action
-        actions = ObsTerm(func=mdp.last_action)
-
-        def __post_init__(self) -> None:
-            self.enable_corruption = False # change to True if you want to add noise to the observations
-            self.concatenate_terms = True
-
-    policy: PolicyCfg = PolicyCfg()
-
-
-@configclass
-class TerminationsCfg:
-    """Termination terms for the MDP."""
-
-    # (1) Time out
-    time_out = DoneTerm(func=mdp.time_out, time_out=True)
-
-    # (2) Robot falls over
-    bad_orientation = DoneTerm(
-        func=mdp.bad_orientation,
-        params={
-            "asset_cfg": SceneEntityCfg("robot"),
-            "limit_angle": math.radians(30.0),
-        },
-    )
 
 
 @configclass
@@ -176,70 +71,55 @@ class EventCfg:
         },
     )
 
-    # initial disturbance
-    initial_push = EventTerm(
-        func=mdp.push_by_setting_velocity,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot"),
-            "velocity_range": {
-                "x": (-1.0, 1.0),
-                "y": (-1.0, 1.0),
-                "z": (0.0, 0.0),
-                "roll": (0.0, 0.0),
-                "pitch": (0.0, 0.0),
-                "yaw": (0.0, 0.0),
-            },
-        },
-    )
-
 
 @configclass
 class RewardsCfg:
     """Reward terms for the MDP."""
 
-    # Stay alive
-    alive = RewTerm(func=mdp.is_alive, weight=1.0)
+    # Alive bonus
+    alive = RewTerm(func=mdp.is_alive, weight=2.0)
 
-    # Penalty for falling
-    terminating = RewTerm(func=mdp.is_terminated, weight=-2.0)
+    # Large penalty for actual termination/fall
+    terminating = RewTerm(func=mdp.is_terminated, weight=-1.0)
 
-    # Keep the chassis upright
-    upright = RewTerm(func=mdp.flat_orientation_l2, weight=-1.0,
-        params={"asset_cfg": SceneEntityCfg("robot")}
+    # Stability / pitch-roll regulation.
+    upright = RewTerm(func=mdp.flat_orientation_l2, weight=-0.05,
+        params={"asset_cfg": SceneEntityCfg("robot") }
     )
 
-    # Penalize body angular velocity
+    # Suppress excessive body angular motion
     body_ang_vel = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.01,
         params={"asset_cfg": SceneEntityCfg("robot")}
     )
 
     # Penalize excessive wheel velocity
-    wheel_vel = RewTerm(func=mdp.joint_vel_l2,weight=-0.001,
+    wheel_vel = RewTerm(func=mdp.joint_vel_l2, weight=-0.001,
         params={"asset_cfg": SceneEntityCfg("robot",
-                joint_names=["left_wheel_joint","right_wheel_joint"],
+                joint_names=["left_wheel_joint","right_wheel_joint"]
             ),
-        }
+        },
     )
 
-    # Penalize rapid changes in wheel torque
-    action_rate = RewTerm(func=mdp.action_rate_l2,weight=-0.001)
+    # Penalize rapid changes in action / torque command
+    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.005)
 
-    # Track commanded forward velocity
-    velocity_tracking = RewTerm(
-        func=mdp.track_lin_vel_xy_exp,
-        weight=2.0,
-        params={"std": 0.5, "command_name": "base_velocity"}
+    # Penalize motor effort
+    effort = RewTerm(func=mdp.joint_torques_l2, weight=-0.005,
+        params={"asset_cfg": SceneEntityCfg("robot",
+                joint_names=["left_wheel_joint","right_wheel_joint"]
+            ),
+        },
     )
 
-    # yaw_tracking = RewTerm(
-    #     func=mdp.track_ang_vel_z_exp,
-    #     weight=0.5,
-    #     params={
-    #         "std": 0.5,
-    #         "command_name": "base_velocity",
-    #     },
-    # )
+    # Track the commanded body velocity.
+    command_tracking = RewTerm(
+        func=mdp.velocity_magnitude_error,
+        weight=-2.0,
+        params={
+            "asset_cfg": SceneEntityCfg("robot"),
+            "command_name": "base_velocity",
+        },
+    )
 
 
 @configclass
@@ -247,55 +127,40 @@ class CurriculumCfg:
     """Curriculum terms for the MDP."""
 
     # ============================================================
-    # Stage 2: Light -> moderate disturbance
+    # Stage 1: velocity tracking at +/- 1 m/s
     # ============================================================
 
-    disturbance_stage_2 = CurrTerm(
+    command_stage_1 = CurrTerm(
         func=mdp.modify_term_cfg,
         params={
-            "address": "events.initial_push.params.velocity_range",
-            "modify_fn": mdp.set_disturbance,
+            "address": "commands.base_velocity.ranges.lin_vel_y",
+            "modify_fn": mdp.set_curr_param,
             "modify_params": {
-                "x_range": (-2.0, 2.0),
-                "y_range": (-2.0, 2.0),
+                "value": (-0.5, 0.5),
+                "start_step": 0,
+            },
+        },
+    )
+
+    # ============================================================
+    # Stage 3: increase velocity command to +/- 2 m/s
+    # ============================================================
+
+    command_stage_3 = CurrTerm(
+        func=mdp.modify_term_cfg,
+        params={
+            "address": "commands.base_velocity.ranges.lin_vel_y",
+            "modify_fn": mdp.set_curr_param,
+            "modify_params": {
+                "value": (-2.0, 2.0),
                 "start_step": 2_500,
             },
         },
     )
 
     # ============================================================
-    # Stage 3: Moderate -> heavy disturbance
+    # Stage 4: Increase velocity command to +/- 4 m/s
     # ============================================================
-
-    disturbance_stage_3 = CurrTerm(
-        func=mdp.modify_term_cfg,
-        params={
-            "address": "events.initial_push.params.velocity_range",
-            "modify_fn": mdp.set_disturbance,
-            "modify_params": {
-                "x_range": (-4.0, 4.0),
-                "y_range": (-4.0, 4.0),
-                "start_step": 5_000,
-            },
-        },
-    )
-
-    # ============================================================
-    # Stage 4: velocity tracking at +/- 1 m/s
-    # ============================================================
-
-    disturbance_stage_4 = CurrTerm(
-        func=mdp.modify_term_cfg,
-        params={
-            "address": "events.initial_push.params.velocity_range",
-            "modify_fn": mdp.set_disturbance,
-            "modify_params": {
-                "x_range": (0.0, 0.0),
-                "y_range": (0.0, 0.0),
-                "start_step": 7_500,
-            },
-        },
-    )
 
     command_stage_4 = CurrTerm(
         func=mdp.modify_term_cfg,
@@ -303,51 +168,8 @@ class CurriculumCfg:
             "address": "commands.base_velocity.ranges.lin_vel_y",
             "modify_fn": mdp.set_curr_param,
             "modify_params": {
-                "value": (-1.0, 1.0),
-                "start_step": 7_500,
-            },
-        },
-    )
-
-    upright_stage_4 = CurrTerm(
-        func=mdp.modify_reward_weight,
-        params={
-            "term_name": "upright",
-            "weight": -0.2,
-            "num_steps": 7_500,
-        },
-    )
-
-    # ============================================================
-    # Stage 5: 15,000 steps
-    # Increase velocity command to +/- 2 m/s
-    # ============================================================
-
-    command_stage_5 = CurrTerm(
-        func=mdp.modify_term_cfg,
-        params={
-            "address": "commands.base_velocity.ranges.lin_vel_y",
-            "modify_fn": mdp.set_curr_param,
-            "modify_params": {
-                "value": (-2.0, 2.0),
-                "start_step": 10_000,
-            },
-        },
-    )
-
-    # ============================================================
-    # Stage 6: 20,000 steps
-    # Increase velocity command to +/- 4 m/s
-    # ============================================================
-
-    command_stage_6 = CurrTerm(
-        func=mdp.modify_term_cfg,
-        params={
-            "address": "commands.base_velocity.ranges.lin_vel_y",
-            "modify_fn": mdp.set_curr_param,
-            "modify_params": {
                 "value": (-4.0, 4.0),
-                "start_step": 12_500,
+                "start_step": 5_000,
             },
         },
     )
@@ -359,34 +181,16 @@ class CurriculumCfg:
 
 
 @configclass
-class TwipEnvCfg(ManagerBasedRLEnvCfg):
-    # Scene settings
-    scene = TwipSceneCfg(num_envs=8192, env_spacing=2.0)
-    # Basic settings
-    observations = ObservationsCfg()
-    actions = ActionsCfg()
-    commands =CommandsCfg()
-    # MDP settings
-    terminations = TerminationsCfg()
+class TwipLocomotionEnvCfg(TwipEnvCfg):
+    """Configuration for the Twip stability environment."""
+
     events = EventCfg()
     rewards = RewardsCfg()
     curriculum = CurriculumCfg()
 
-    # Post initialization
-    def __post_init__(self) -> None:
-        """Post initialization."""
-        # general settings
-        self.decimation = 2
-        self.sim.render_interval = self.decimation
-        self.episode_length_s = 5
-        # viewer settings
-        self.viewer.eye = (5.0, 0.0, 5.0)
-        # simulation settings
-        self.sim.dt = 1 / 60.0
-
 
 @configclass
-class TwipEnvCfg_PLAY(TwipEnvCfg):
+class TwipLocomotionEnvCfg_PLAY(TwipLocomotionEnvCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
@@ -395,4 +199,7 @@ class TwipEnvCfg_PLAY(TwipEnvCfg):
         self.scene.env_spacing = 2.0
         # disable randomization for play
         self.observations.policy.enable_corruption = False
+
+        # Commands available during play
+        self.commands.base_velocity.ranges.lin_vel_y = (-2.0, 2.0)
         

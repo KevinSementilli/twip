@@ -12,22 +12,51 @@ from . import agents
 ##
 
 
+##
+# Stability environments.
+##
+
 gym.register(
-    id="Template-Twip-V2",
+    id="Twip-Stability-Train",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": f"{__name__}.twip_v2_env_cfg:TwipEnvCfg",
-        "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_cfg.yaml",
+        "env_cfg_entry_point": f"{__name__}.twip_v2_stability_env_cfg:TwipStabilityEnvCfg",
+        "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_stability_cfg.yaml",
     },
 )
 
 gym.register(
-    id="Template-Twip-Play-V2",
+    id="Twip-Stability-Play",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": f"{__name__}.twip_v2_env_cfg:TwipEnvCfg_PLAY",
-        "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_cfg.yaml",
+        "env_cfg_entry_point": f"{__name__}.twip_v2_stability_env_cfg:TwipStabilityEnvCfg_PLAY",
+        "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_stability_cfg.yaml",
+    },
+)
+
+
+##
+# Locomotion environments.
+##
+
+gym.register(
+    id="Twip-Locomotion-Train",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.twip_v2_locomotion_env_cfg:TwipLocomotionEnvCfg",
+        "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_locomotion_cfg.yaml",
+    },
+)
+
+gym.register(
+    id="Twip-Locomotion-Play",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.twip_v2_locomotion_env_cfg:TwipLocomotionEnvCfg_PLAY",
+        "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_locomotion_cfg.yaml",
     },
 )

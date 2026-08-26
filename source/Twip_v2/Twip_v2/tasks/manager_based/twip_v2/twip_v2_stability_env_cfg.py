@@ -21,14 +21,13 @@ from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.utils.configclass import configclass
 
 from . import mdp
-from .twip_v2_env_cfg import TwipEnvCfg
 
 ##
 # Pre-defined configs
 ##
 
 from .twip_articu_conf import TWIP_CFG  # isort:skip
-
+from .twip_v2_env_cfg import TwipEnvCfg
 
 
 ##
@@ -74,13 +73,13 @@ class EventCfg:
 
     # initial disturbance
     initial_push = EventTerm(
-        func=mdp.push_by_setting_velocity,
+        func=mdp.push_robot,
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot"),
             "velocity_range": {
-                "x": (-1.0, 1.0),
-                "y": (-1.0, 1.0),
+                "x": (-0.25, 0.25),
+                "y": (-0.25, 0.25),
                 "z": (0.0, 0.0),
                 "roll": (0.0, 0.0),
                 "pitch": (0.0, 0.0),
@@ -98,10 +97,10 @@ class RewardsCfg:
     alive = RewTerm(func=mdp.is_alive, weight=1.0)
 
     # Penalty for falling
-    terminating = RewTerm(func=mdp.is_terminated, weight=-2.0)
+    terminating = RewTerm(func=mdp.is_terminated, weight=-5.0)
 
     # Keep the chassis upright
-    upright = RewTerm(func=mdp.flat_orientation_l2, weight=-1.0,
+    upright = RewTerm(func=mdp.flat_orientation_l2, weight=-2.0,
         params={"asset_cfg": SceneEntityCfg("robot")}
     )
 
@@ -119,7 +118,7 @@ class RewardsCfg:
     )
 
     # Penalize rapid changes in wheel torque
-    action_rate = RewTerm(func=mdp.action_rate_l2,weight=-0.001)
+    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.001)
 
 
 @configclass
@@ -134,10 +133,16 @@ class CurriculumCfg:
         func=mdp.modify_term_cfg,
         params={
             "address": "events.initial_push.params.velocity_range",
-            "modify_fn": mdp.set_disturbance,
+            "modify_fn": mdp.set_curr_param,
             "modify_params": {
-                "x_range": (-2.0, 2.0),
-                "y_range": (-2.0, 2.0),
+                "value": {
+                    "x": (-0.5, 0.5),
+                    "y": (-0.5, 0.5),
+                    "z": (0.0, 0.0),
+                    "roll": (0.0, 0.0),
+                    "pitch": (0.0, 0.0),
+                    "yaw": (0.0, 0.0),
+                },
                 "start_step": 2_500,
             },
         },
@@ -151,11 +156,40 @@ class CurriculumCfg:
         func=mdp.modify_term_cfg,
         params={
             "address": "events.initial_push.params.velocity_range",
-            "modify_fn": mdp.set_disturbance,
+            "modify_fn": mdp.set_curr_param,
             "modify_params": {
-                "x_range": (-4.0, 4.0),
-                "y_range": (-4.0, 4.0),
+                "value": {
+                    "x": (-0.75, 0.75),
+                    "y": (-0.75, 0.75),
+                    "z": (0.0, 0.0),
+                    "roll": (0.0, 0.0),
+                    "pitch": (0.0, 0.0),
+                    "yaw": (0.0, 0.0),
+                },
                 "start_step": 5_000,
+            },
+        },
+    )
+
+    # ============================================================
+    # Stage 3: Moderate -> heavy disturbance
+    # ============================================================
+
+    disturbance_stage_4 = CurrTerm(
+        func=mdp.modify_term_cfg,
+        params={
+            "address": "events.initial_push.params.velocity_range",
+            "modify_fn": mdp.set_curr_param,
+            "modify_params": {
+                "value": {
+                    "x": (-1.0, 1.0),
+                    "y": (-1.0, 1.0),
+                    "z": (0.0, 0.0),
+                    "roll": (0.0, 0.0),
+                    "pitch": (0.0, 0.0),
+                    "yaw": (0.0, 0.0),
+                },
+                "start_step": 7_500,
             },
         },
     )
@@ -169,25 +203,14 @@ class CurriculumCfg:
 @configclass
 class TwipStabilityEnvCfg(TwipEnvCfg):
     """Configuration for the Twip stability environment."""
+    
     events = EventCfg()
     rewards = RewardsCfg()
     curriculum = CurriculumCfg()
 
-    # Post initialization
-    def __post_init__(self) -> None:
-        """Post initialization."""
-        # general settings
-        self.decimation = 2
-        self.sim.render_interval = self.decimation
-        self.episode_length_s = 5
-        # viewer settings
-        self.viewer.eye = (5.0, 0.0, 5.0)
-        # simulation settings
-        self.sim.dt = 1 / 60.0
-
 
 @configclass
-class TwipEnvCfg_PLAY(TwipStabilityEnvCfg):
+class TwipStabilityEnvCfg_PLAY(TwipStabilityEnvCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
